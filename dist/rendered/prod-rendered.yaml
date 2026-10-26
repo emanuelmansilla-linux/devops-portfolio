@@ -1,0 +1,69 @@
+---
+# Source: devops-portfolio/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-prod-notes-app
+  labels:
+    app: devops-prod-notes-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app: devops-prod-notes-app
+---
+# Source: devops-portfolio/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-prod-notes-app
+  labels:
+    app: devops-prod-notes-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-prod-notes-app
+  template:
+    metadata:
+      labels:
+        app: devops-prod-notes-app
+    spec:
+      containers:
+        - name: notes-app
+          image: "emanuelmansilla/notes-app:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: devops-portfolio/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-prod-notes-app-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: notes.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: devops-prod-notes-app
+                port:
+                  number: 5000

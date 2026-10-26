@@ -1,0 +1,29 @@
+name: TP10 - Helm CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  render-and-validate:
+    name: Render First & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar Helm CLI
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Ejecutar Linting del Chart
+        run: helm lint ./devops-portfolio
+
+      - name: Ejecutar Script Render & Validate
+        run: ./scripts/render-validate.sh
+
+      - name: Auditar entorno Helm
+        run: ./scripts/verificar-helm-entornos.sh
