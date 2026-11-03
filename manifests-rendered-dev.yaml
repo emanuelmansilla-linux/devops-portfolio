@@ -147,9 +147,14 @@ metadata:
     checksum/secret: 45c55739937191f993a223206f8b24aa12b8c2ab44050946312fd52099248915
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        checksum/config: 1af70333f456094b05df01e0d965d27acc545ba4290032831dceb59b6a3bf46d
+        checksum/secret: 45c55739937191f993a223206f8b24aa12b8c2ab44050946312fd52099248915
+
   strategy:
     type: RollingUpdate
     rollingUpdate:

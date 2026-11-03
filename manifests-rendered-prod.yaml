@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: devops-portfolio
+  name: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -16,7 +16,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: postgres-secret
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -26,7 +26,7 @@ metadata:
 type: Opaque
 data:
   POSTGRES_USER:     cG9zdGdyZXM=
-  POSTGRES_PASSWORD: c3VwZXItc2VjcmV0LXByb2QtcGFzc3dvcmQ=
+  POSTGRES_PASSWORD: cHJvZC1zdXBlci1zZWN1cmUtcGFzc3dvcmQtMjAyNg==
   POSTGRES_DB:       bm90ZXNkYg==
 ---
 # Source: devops-portfolio/templates/configmap.yaml
@@ -34,7 +34,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: backend-config
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -55,7 +55,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -66,34 +66,14 @@ spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 10Gi
----
-# Source: devops-portfolio/templates/backend.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend-service
-  namespace: devops-portfolio
-  labels:
-    helm.sh/chart: devops-portfolio-0.1.0
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: mi-app
-    app.kubernetes.io/version: 1.0.0
-    environment: production
-spec:
-  type: ClusterIP
-  selector:
-    app: backend
-  ports:
-    - port: 5000
-      targetPort: 5000
+      storage: 5Gi
 ---
 # Source: devops-portfolio/templates/frontend.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -114,7 +94,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -133,91 +113,34 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
-  namespace: devops-portfolio
+  name: mi-app-devops-portfolio-backend
   labels:
-    helm.sh/chart: devops-portfolio-0.1.0
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: mi-app
-    app.kubernetes.io/version: 1.0.0
-    environment: production
-  annotations:
-    # Fuerza re-deploy cuando cambia el configmap o secret
-    checksum/config: c64805cad163fdfb74da3eb602c505b6622631ec511daaaf5d8796f13f7903da
-    checksum/secret: 38d9f2b90a2cd6e5162e74ff17eb43642928e0262e0fea36c7bd451fdbad1ea2
+    app: backend
 spec:
   replicas: 3
   selector:
     matchLabels:
       app: backend
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: backend
-        helm.sh/chart: devops-portfolio-0.1.0
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/instance: mi-app
-        app.kubernetes.io/version: 1.0.0
-        environment: production
+      annotations:
+        checksum/config: 5b5116e4e1c0337fb940449a4a4a699fc32a5e06f369f021e7f3b58f4d271359
+        checksum/secret: 9f7265d156500e858f5548bc62b01b11ccbb90c05cf31d7484d3498abff350ad
     spec:
-      initContainers:
-        - name: wait-for-db
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - until nc -z postgres-service 5432; do echo "Esperando DB..."; sleep 2; done
       containers:
         - name: backend
-          image: "emanuelmansilla/devops-portfolio:latest"
-          imagePullPolicy: Always
+          image: "emanuelmansilla/notes-app:latest"
           ports:
             - containerPort: 5000
-          envFrom:
-            - configMapRef:
-                name: backend-config
-          env:
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_USER
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_PASSWORD
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 5000
-            initialDelaySeconds: 15
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 5000
-            initialDelaySeconds: 30
-            periodSeconds: 20
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 512Mi
-            requests:
-              cpu: 200m
-              memory: 256Mi
 ---
 # Source: devops-portfolio/templates/frontend.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -225,7 +148,7 @@ metadata:
     app.kubernetes.io/version: 1.0.0
     environment: production
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: frontend
@@ -270,7 +193,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
@@ -326,34 +249,12 @@ spec:
           persistentVolumeClaim:
             claimName: postgres-pvc
 ---
-# Source: devops-portfolio/templates/backend.yaml
-# ── HPA (opcional, si autoscaling.enabled=true) ───────────
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: backend-hpa
-  namespace: devops-portfolio
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: backend
-  minReplicas: 3
-  maxReplicas: 8
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 60
----
 # Source: devops-portfolio/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: devops-portfolio-ingress
-  namespace: devops-portfolio
+  namespace: production
   labels:
     helm.sh/chart: devops-portfolio-0.1.0
     app.kubernetes.io/managed-by: Helm
