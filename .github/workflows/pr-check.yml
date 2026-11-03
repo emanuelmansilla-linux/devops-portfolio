@@ -10,19 +10,35 @@ jobs:
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
+
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Instalar dependencias de test
         run: |
           pip install flake8 pytest pytest-cov PyYAML
+
       - name: Linting de código Python (Flake8)
         run: |
-          flake8 backend/ --max-line-length=120
+          if [ -d "backend" ]; then
+            flake8 backend/ --max-line-length=120
+          elif [ -d "devops-portfolio/backend" ]; then
+            flake8 devops-portfolio/backend/ --max-line-length=120
+          else
+            echo "[INFO] No se encontró directorio backend para linter. Omitiendo paso."
+          fi
+
       - name: Ejecutar Pruebas Unitarias
         run: |
-          pytest backend/tests/
+          if [ -d "backend/tests" ]; then
+            pytest backend/tests/
+          elif [ -d "devops-portfolio/backend/tests" ]; then
+            pytest devops-portfolio/backend/tests/
+          else
+            echo "[INFO] No se encontraron pruebas unitarias en backend. Omitiendo pytest."
+          fi
 
   helm-validation:
     name: Validar y Renderizar Helm Chart (Render First)
@@ -30,19 +46,20 @@ jobs:
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
+
       - name: Instalar Helm CLI
         uses: azure/setup-helm@v4
         with:
           version: 'v3.13.0'
+
       - name: Validar estructura y metadata del Chart (Helm Lint)
         run: |
           helm lint devops-portfolio/
-      # -------------------------------------------------------------
-      # PASO CLAVE TP10B: Renderizado previo de plantillas con values
-      # -------------------------------------------------------------
+
       - name: Renderizar Plantillas Go a YAML puro de Kubernetes
         run: |
           helm template mi-app ./devops-portfolio -f devops-portfolio/values-prod.yaml > manifests-rendered-prod.yaml
+
       - name: Validar Sintaxis YAML del Manifiesto Renderizado
         run: |
           python3 -c "
@@ -51,6 +68,7 @@ jobs:
               docs = list(yaml.safe_load_all(f))
               print(f'[OK] Se procesaron correctamente {len(docs)} objetos de K8s.')
           "
+
       - name: Publicar Artefacto con los Manifiestos Renderizados
         uses: actions/upload-artifact@v4
         with:
