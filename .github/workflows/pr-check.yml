@@ -1,5 +1,4 @@
 name: PR Check - Validación de Calidad y Helm Chart
-
 on:
   pull_request:
     branches: [ main, develop ]
@@ -23,11 +22,23 @@ jobs:
 
       - name: Linting de código Python (Flake8)
         run: |
-          flake8 backend/ --max-line-length=120 || true
+          if [ -d "backend" ]; then
+            flake8 backend/ --max-line-length=120
+          elif [ -d "devops-portfolio/backend" ]; then
+            flake8 devops-portfolio/backend/ --max-line-length=120
+          else
+            echo "[INFO] No se encontró directorio backend para linter. Omitiendo paso."
+          fi
 
       - name: Ejecutar Pruebas Unitarias
         run: |
-          pytest backend/tests/ || true
+          if [ -d "backend/tests" ]; then
+            pytest backend/tests/
+          elif [ -d "devops-portfolio/backend/tests" ]; then
+            pytest devops-portfolio/backend/tests/
+          else
+            echo "[INFO] No se encontraron pruebas unitarias en backend. Omitiendo pytest."
+          fi
 
   helm-validation:
     name: Validar y Renderizar Helm Chart (Render First)
@@ -47,7 +58,7 @@ jobs:
 
       - name: Renderizar Plantillas Go a YAML puro de Kubernetes
         run: |
-          helm template mi-app ./devops-portfolio -f values-prod.yaml > manifests-rendered-prod.yaml
+          helm template mi-app ./devops-portfolio -f devops-portfolio/values-prod.yaml > manifests-rendered-prod.yaml
 
       - name: Validar Sintaxis YAML del Manifiesto Renderizado
         run: |
