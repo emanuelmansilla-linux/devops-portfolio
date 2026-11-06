@@ -1,0 +1,32 @@
+groups:
+  - name: ciberseguridad-k8s
+    rules:
+      # Alerta 1: Picos de peticiones denegadas (Posible escaneo o fuerza bruta)
+      - alert: UnauthorizedAPIRequests
+        expr: rate(apiserver_request_total{code=~"401|403"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Peticiones no autorizadas a la API de K8s"
+          description: "Se detectó un pico de peticiones HTTP 401/403 hacia el apiserver. Posible intento de intrusión."
+
+      # Alerta 2: Creación sospechosa de Pods en kube-system (Escalada de privilegios)
+      - alert: UnexpectedPodInKubeSystem
+        expr: rate(kube_pod_created{namespace="kube-system"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod creado en el namespace del sistema"
+          description: "Alerta de seguridad: Se ha desplegado un nuevo Pod en kube-system. Verificar si es una actualización legítima."
+
+      # Alerta 3: Alto consumo de red inesperado (Posible exfiltración de datos o DDoS)
+      - alert: HighNetworkTrafficAnomaly
+        expr: rate(container_network_transmit_bytes_total[5m]) > 10000000 # ~10MB/s
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tráfico de red anómalo de salida"
+          description: "Un contenedor está transmitiendo demasiados datos. Verificar si es tráfico legítimo o una posible exfiltración."
